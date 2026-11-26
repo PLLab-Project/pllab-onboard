@@ -29,23 +29,41 @@ install_tools() {
   mkdir -p "$BIN"
   PATH=$BIN:$PATH
   export PATH
-  if [ "$(uname -s)" = Darwin ]; then
-    for tool in cloudflared gh; do
-      have "$tool" || { have brew || die "Install Homebrew (https://brew.sh) first."; brew install "$tool"; }
-    done
-    return
+  mac=no
+  [ "$(uname -s)" = Darwin ] && mac=yes
+  for tool in cloudflared gh; do
+    have "$tool" && continue
+    if [ "$mac" = yes ] && have brew; then
+      brew install "$tool"
+    else
+      download_"$tool" "$mac"
+    fi
+  done
+}
+
+download_cloudflared() {
+  base=https://github.com/cloudflare/cloudflared/releases/latest/download
+  if [ "$1" = yes ]; then
+    curl -fsSL "$base/cloudflared-darwin-$(arch).tgz" | tar -xz -C "$BIN" cloudflared
+  else
+    curl -fsSL "$base/cloudflared-linux-$(arch)" -o "$BIN/cloudflared"
   fi
-  if ! have cloudflared; then
-    curl -fsSL "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-$(arch)" -o "$BIN/cloudflared"
-    chmod +x "$BIN/cloudflared"
+  chmod +x "$BIN/cloudflared"
+}
+
+download_gh() {
+  version=$(curl -fsSL https://api.github.com/repos/cli/cli/releases/latest | sed -n 's/.*"tag_name": *"v\([^"]*\)".*/\1/p')
+  base=https://github.com/cli/cli/releases/download/v$version
+  tmp=$(mktemp -d)
+  if [ "$1" = yes ]; then
+    curl -fsSL "$base/gh_${version}_macOS_$(arch).zip" -o "$tmp/gh.zip"
+    unzip -q "$tmp/gh.zip" -d "$tmp"
+  else
+    curl -fsSL "$base/gh_${version}_linux_$(arch).tar.gz" | tar -xz -C "$tmp"
   fi
-  if ! have gh; then
-    version=$(curl -fsSL https://api.github.com/repos/cli/cli/releases/latest | sed -n 's/.*"tag_name": *"v\([^"]*\)".*/\1/p')
-    tmp=$(mktemp -d)
-    curl -fsSL "https://github.com/cli/cli/releases/download/v$version/gh_${version}_linux_$(arch).tar.gz" | tar -xz -C "$tmp"
-    install -m 0755 "$tmp"/gh_*/bin/gh "$BIN/gh"
-    rm -rf "$tmp"
-  fi
+  cp "$tmp"/gh_*/bin/gh "$BIN/gh"
+  chmod +x "$BIN/gh"
+  rm -rf "$tmp"
 }
 
 github_login() {
@@ -103,7 +121,7 @@ write_ssh_config() {
   config=$SSH_DIR/config
   touch "$config"
   chmod 600 "$config"
-  outside=$(awk -v b="$BEGIN" -v e="$END" '$0==b{skip=1} !skip{print} $0==e{skip=0}' "$config" | sed '/./,$!d')
+  outside=$(awk -v b="$BEGIN" -v e="$END" '$0==b{skip=1} !skip{print} $0==e{skip=0}' "$config" | awk 'NF{p=1} p')
   if printf '%s\n' "$outside" | grep -Eiq "^[[:space:]]*host[[:space:]].*(^|[[:space:]])$ALIAS([[:space:]]|\$)"; then
     die "$config already has a 'Host $ALIAS' entry. Remove it, or run again with PLLAB_ALIAS=<other name>."
   fi
