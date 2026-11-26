@@ -25,6 +25,7 @@ ct sh -c 'useradd -m ghost && echo "{\"accounts\":{\"1\":{\"user\":\"ghost\",\"l
 
 ct /opt/pllab-accounts/bin/pllab-accounts sync 2>/dev/null
 ct id "$user" | grep -q pllab-members && pass "member account created in pllab-members" || fail "member account"
+ct test -s "/home/$user/.claude/CLAUDE.md" && ct test -s "/home/$user/.codex/AGENTS.md" && pass "new account gets the server guide for agents" || fail "agent guide"
 ct sh -c "chage -l ghost | grep -q 'Account expires.*1970'" && pass "departed member locked" || fail "lock"
 
 sshc "$user@127.0.0.1" 'sudo -n true && id -un' | grep -qx "$user" && pass "key login and passwordless sudo" || fail "login"

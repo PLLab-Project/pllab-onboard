@@ -27,6 +27,12 @@ visudo -cqf "$sudoers"
 install -o root -g root -m 0440 "$sudoers" /etc/sudoers.d/pllab-members
 rm -f "$sudoers"
 
+for dir in .claude .codex; do
+  install -d -o root -g root -m 0755 "/etc/skel/$dir"
+done
+install -o root -g root -m 0644 "$here/agent/pllab-server.md" /etc/skel/.claude/CLAUDE.md
+install -o root -g root -m 0644 "$here/agent/pllab-server.md" /etc/skel/.codex/AGENTS.md
+
 install -o root -g root -m 0644 "$here/sshd/10-pllab-accounts.conf" /etc/ssh/sshd_config.d/
 if [ "$harden" = yes ]; then
   install -o root -g root -m 0644 "$here/sshd/05-pllab-hardening.conf" /etc/ssh/sshd_config.d/

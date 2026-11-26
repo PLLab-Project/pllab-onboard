@@ -38,4 +38,19 @@ GitHub 아이디를 바꾼 적이 있는 사용자는 서버 계정 이름이 �
 
 ## 끝난 뒤
 
-스크립트가 `Done.`을 출력하면 사용자에게 `ssh pllab`으로 접속하라고 안내한다. 서버 사용법은 접속 후 `/srv/pllab/docs/README.md`에 있다.
+스크립트가 `Done.`을 출력하면 서버 규칙을 읽고 사용자에게 알려 준다.
+
+1. `ssh pllab cat /srv/pllab/docs/README.md`를 실행하고, README가 링크한 `server.md`도 읽는다.
+2. 사용자에게 다음을 짧게 요약한다: 디렉터리와 배포 규칙, 자격증명 취급, 서비스별 문서 위치, 모든 조직원이 sudo를 가진 공용 서버라는 점.
+3. 사용자에게 묻고, 동의하면 사용자의 전역 에이전트 지침에 아래 블록을 추가한다. Claude Code는 `~/.claude/CLAUDE.md`, Codex는 `~/.codex/AGENTS.md`다. 같은 표시 줄이 이미 있으면 추가하지 않는다. 규칙 내용을 복사해 넣지 않는다. 원본은 서버 문서 하나다.
+
+```markdown
+<!-- pllab-onboard -->
+## pllab 서버
+- `ssh pllab`은 PLLab 랩실 공용 서버다. 다른 랩원과 운영 중인 서비스가 있다.
+- 서버에서 무언가를 바꾸기 전에 `ssh pllab cat /srv/pllab/docs/README.md`로 규칙을 다시 읽고, 관련 `services/`·`runbooks/` 문서를 따른다.
+- 서버 상태가 문서와 다르면 사용자에게 알리고 작업의 일부로 문서를 고친다.
+<!-- /pllab-onboard -->
+```
+
+서버 안에서 실행하는 Claude Code와 Codex는 계정의 `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`에서 같은 안내를 받는다. 이 파일은 서버가 계정을 만들 때 넣는다.
