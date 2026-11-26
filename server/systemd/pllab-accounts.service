@@ -1,0 +1,9 @@
+[Unit]
+Description=Sync PLLab GitHub organization members to Linux accounts
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/usr/bin/flock -n /run/pllab-accounts.lock /opt/pllab-accounts/bin/pllab-accounts sync
