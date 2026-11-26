@@ -6,14 +6,13 @@
 
 | 경로 | 역할 |
 | --- | --- |
-| `/opt/pllab-accounts/bin/pllab-accounts` | `sync`(root, 타이머)와 `keys <user>`(sshd가 `pllab-keys` 계정으로 실행) |
+| `/opt/pllab-accounts/bin/pllab-accounts` | `sync`(root, 타이머)와 `keys <user>`(sshd가 `pllab-keys` 계정으로 실행, 캐시만 읽음) |
 | `/opt/pllab-accounts/data/accounts.json` | GitHub 사용자 ID와 Linux 계정의 대응, 상태(`active`, `locked`) |
-| `/opt/pllab-accounts/data/keys/<user>` | GitHub가 응답하지 않을 때 쓰는 키 캐시 |
-| `/opt/pllab-accounts/data/token.json` | 1시간짜리 GitHub App 설치 토큰. `root:pllab-keys 0640` |
+| `/opt/pllab-accounts/data/keys/<user>` | `sync`가 매번 새로 받는 공개키. 24시간보다 오래되면 `keys`가 쓰지 않음 |
 | `/etc/pllab-accounts/config.json` | 조직, App ID, 개인키 경로, 계정 이름 예외 |
 | `/etc/systemd/system/pllab-accounts.{service,timer}` | 1분마다 `sync` 실행 |
 | `/etc/ssh/sshd_config.d/10-pllab-accounts.conf` | `AuthorizedKeysCommand` 연결 |
-| `/etc/ssh/sshd_config.d/05-pllab-hardening.conf` | 비밀번호·root 로그인 차단 (`--harden`일 때) |
+| `/etc/ssh/sshd_config.d/05-pllab-hardening.conf` | 비밀번호·root 로그인 차단, 터널 출발지 IP를 접속 제한에서 제외 (`--harden`일 때) |
 | `/etc/sudoers.d/pllab-members` | `pllab-members` 그룹의 비밀번호 없는 sudo |
 
 ## 1. GitHub App 만들기 (조직 owner)
@@ -60,6 +59,14 @@ sudo sh server/install.sh                  # app_id가 있으면 타이머를 �
 
 Zero Trust > Access > Applications에서 `ssh.pl-official.site`의 앱 `PLLab Server SSH`를 삭제한다. 터널의 `ssh.pl-official.site` 라우팅은 그대로 둔다. 서비스 토큰을 쓰던 기존 PC의 설정은 수정하지 않아도 계속 접속된다.
 
+## 저장소 보호 (조직 owner)
+
+이 저장소는 공개 저장소이고, 랩원의 에이전트와 관리자의 `install.sh`가 main의 스크립트를 그대로 실행한다. main에 push할 수 있는 사람이 곧 모든 랩원 PC와 서버에서 코드를 실행할 수 있는 사람이다.
+
+- main 브랜치 보호를 켜고 PR 리뷰를 필수로 한다.
+- 조직의 base repository permission을 `Read`로 둔다. 쓰기 권한은 관리자에게만 준다.
+- 조직 설정에서 2FA를 필수로 한다.
+
 ## 운영
 
 ```sh
@@ -68,7 +75,10 @@ journalctl -u pllab-accounts.service --since today
 sudo cat /opt/pllab-accounts/data/accounts.json
 ```
 
-- 퇴실: 조직에서 빼면 1분 안에 계정이 잠기고 실행 중인 프로세스가 종료된다. 홈 디렉터리는 남는다. 완전히 지우려면 `sudo userdel -r <계정>` 후 `accounts.json`에서 그 항목을 지운다.
+- 퇴실: 조직에서 빼면 1분 안에 계정이 잠기고 그 계정으로 실행 중인 프로세스가 종료된다. 그 사람이 `sudo`로 띄운 root 프로세스(`sudo tmux` 등)는 남으므로 `ps -ef`로 확인해 정리한다. 홈 디렉터리는 남는다. 완전히 지우려면 `sudo userdel -r <계정>` 후 `accounts.json`에서 그 항목을 지운다.
+- 한 번에 활성 계정의 절반 넘게 잠가야 하면 `sync`는 잠금을 건너뛰고 로그를 남긴다. 의도한 변경이면 `sudo /opt/pllab-accounts/bin/pllab-accounts sync --allow-mass-lock`을 실행한다.
+- `skip ... -> ...:` 로그는 이름이 겹쳐 계정을 만들지 못한 조직원이다. `config.json`의 `usernames`에 다른 이름을 지정한다.
+- `pllab-edge` Docker 네트워크의 대역을 바꾸면 `05-pllab-hardening.conf`의 `PerSourcePenaltyExemptList`도 바꾼다. 그대로 두면 한 사람의 로그인 실패가 터널을 쓰는 모든 접속을 잠시 막는다.
 - 복귀: 조직에 다시 넣으면 같은 계정이 다시 열린다.
 - GitHub 아이디 변경: Linux 계정 이름은 바뀌지 않는다. 그 사람은 `PLLAB_USER=<기존 계정>`으로 설정 도구를 다시 실행한다.
 - 조직원 목록을 받지 못하거나 목록이 비어 있으면 `sync`는 아무것도 바꾸지 않고 실패로 끝난다.

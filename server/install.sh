@@ -10,9 +10,10 @@ harden=no
 [ "${1:-}" = "--harden" ] && harden=yes
 
 [ "$(id -u)" = 0 ] || { echo "run as root" >&2; exit 1; }
+python3 -c 'import jwt, cryptography' 2>/dev/null || apt-get install -y python3-jwt python3-cryptography
 
 getent group pllab-members >/dev/null || groupadd pllab-members
-getent passwd pllab-keys >/dev/null || useradd --system --user-group --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin pllab-keys
+getent passwd pllab-keys >/dev/null || useradd --system --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin pllab-keys
 
 install -d -o root -g root -m 0755 "$prefix" "$prefix/bin" "$prefix/data" "$prefix/data/keys"
 install -o root -g root -m 0755 "$here/pllab_accounts.py" "$prefix/bin/pllab-accounts"

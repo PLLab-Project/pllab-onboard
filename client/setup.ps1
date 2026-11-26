@@ -1,6 +1,8 @@
 # Set up `ssh pllab` on Windows for a PLLab-Project organization member.
 # Safe to run again: each step checks what is already done.
-$ErrorActionPreference = 'Stop'
+# Native commands report failure through $LASTEXITCODE. Windows PowerShell 5.1
+# turns their stderr into terminating errors under 'Stop', so keep 'Continue'.
+$ErrorActionPreference = 'Continue'
 
 $Org = 'PLLab-Project'
 $HostName = if ($env:PLLAB_HOST) { $env:PLLAB_HOST } else { 'ssh.pl-official.site' }
@@ -12,7 +14,7 @@ $Begin = '# >>> pllab-onboard >>>'
 $End = '# <<< pllab-onboard <<<'
 
 function Step($text) { Write-Host "`n==> $text" }
-function Fail($text) { Write-Host "`nERROR: $text" -ForegroundColor Red; exit 1 }
+function Fail($text) { throw "ERROR: $text" }
 function Have($name) { [bool](Get-Command $name -ErrorAction SilentlyContinue) }
 
 function Write-Utf8($path, $lines) {
@@ -81,8 +83,8 @@ function Register-Key {
         cmd /c "ssh-keygen -q -t ed25519 -N `"`" -C `"pllab $Login@$env:COMPUTERNAME`" -f `"$Key`""
         if ($LASTEXITCODE -ne 0) { Fail 'ssh-keygen failed.' }
     }
-    $pub = (Get-Content "$Key.pub" -Raw).Split(' ')[1]
-    $remote = (Invoke-RestMethod "https://github.com/$Login.keys") -split "`n" | ForEach-Object { ($_ -split ' ')[1] }
+    $pub = (Get-Content "$Key.pub" -Raw -ErrorAction Stop).Split(' ')[1]
+    $remote = (Invoke-RestMethod "https://github.com/$Login.keys" -ErrorAction Stop) -split "`n" | ForEach-Object { ($_ -split ' ')[1] }
     if ($remote -contains $pub) { Write-Host 'Key already on GitHub'; return }
     if (-not ((gh auth status --hostname github.com 2>&1 | Out-String) -match 'admin:public_key')) {
         gh auth refresh --hostname github.com --scopes admin:public_key
@@ -101,7 +103,7 @@ function Get-LinuxUser {
 function Write-SshConfig {
     Step "Write the '$Alias' entry to $SshDir\config"
     $config = Join-Path $SshDir 'config'
-    $lines = if (Test-Path $config) { @(Get-Content $config) } else { @() }
+    $lines = if (Test-Path $config) { @(Get-Content $config -Encoding UTF8) } else { @() }
     $outside = New-Object System.Collections.Generic.List[string]
     $skip = $false
     foreach ($line in $lines) {
@@ -128,9 +130,11 @@ function Write-SshConfig {
         "    UserKnownHostsFile `"$known`""
         '    StrictHostKeyChecking yes'
         "    ProxyCommand `"$cloudflared`" access ssh --hostname %h"
+        'Host *'
         $End
         ''
     )
+    if (Test-Path $config) { Copy-Item $config "$config.pllab-backup" -Force }
     Write-Utf8 $config ($block + $outside)
 }
 
@@ -146,9 +150,13 @@ function Wait-ForLogin {
     Write-Host "`nDone. Connect with: ssh $Alias"
 }
 
-Install-Tools
-Connect-GitHub
-Join-Org
-Register-Key
-Write-SshConfig
-Wait-ForLogin
+try {
+    Install-Tools
+    Connect-GitHub
+    Join-Org
+    Register-Key
+    Write-SshConfig
+    Wait-ForLogin
+} catch {
+    Write-Host "`n$($_.Exception.Message)" -ForegroundColor Red
+}

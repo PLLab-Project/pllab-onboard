@@ -111,7 +111,7 @@ write_ssh_config() {
   fi
   known=$SSH_DIR/known_hosts_pllab
   printf '%s\n' "$HOSTKEY" > "$known"
-  proxy="ProxyCommand $(command -v cloudflared) access ssh --hostname %h"
+  proxy="ProxyCommand \"$(command -v cloudflared)\" access ssh --hostname %h"
   [ "${PLLAB_PROXY:-}" = none ] && proxy=""
   {
     echo "$BEGIN"
@@ -124,12 +124,14 @@ write_ssh_config() {
     echo "    UserKnownHostsFile \"$known\""
     echo "    StrictHostKeyChecking yes"
     [ -n "$proxy" ] && echo "    $proxy"
+    echo "Host *"
     echo "$END"
     echo
     printf '%s\n' "$outside"
   } > "$config.pllab-new"
-  mv "$config.pllab-new" "$config"
-  chmod 600 "$config"
+  cp "$config" "$config.pllab-backup"
+  cat "$config.pllab-new" > "$config"
+  rm "$config.pllab-new"
 }
 
 wait_for_login() {

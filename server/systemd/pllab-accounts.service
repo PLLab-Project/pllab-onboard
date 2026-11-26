@@ -6,4 +6,5 @@ After=network-online.target
 [Service]
 Type=oneshot
 User=root
+TimeoutStartSec=50
 ExecStart=/usr/bin/flock -n /run/pllab-accounts.lock /opt/pllab-accounts/bin/pllab-accounts sync
