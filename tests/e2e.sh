@@ -1,7 +1,4 @@
 #!/bin/sh
-# End-to-end check in a throwaway container: real GitHub org data, real sshd.
-#   PLLAB_TEST_USER  GitHub login whose key is $PLLAB_TEST_KEY (default: gh user)
-#   PLLAB_TEST_KEY   private key registered on that GitHub account
 set -eu
 cd "$(dirname "$0")/.."
 login=${PLLAB_TEST_USER:-$(gh api user -q .login)}

@@ -1,11 +1,4 @@
 #!/usr/bin/python3 -I
-"""Keep pllab-server Linux accounts in step with GitHub organization members.
-
-`sync` runs as root from a systemd timer: it creates and locks accounts and
-caches each member's GitHub public keys. `keys <user>` is sshd's
-AuthorizedKeysCommand; it only reads that cache, so a login never calls GitHub.
-"""
-
 from __future__ import annotations
 
 import argparse
@@ -66,9 +59,6 @@ def load_config(path: Path = CONFIG_PATH) -> Config:
     )
 
 
-# ---- GitHub -----------------------------------------------------------------
-
-
 class ApiError(Exception):
     pass
 
@@ -119,8 +109,6 @@ def installation_token(cfg: Config) -> str:
     issued, _ = request(cfg, "POST", f"/app/installations/{installation['id']}/access_tokens", assertion)
     return issued["token"]
 
-
-# ---- domain -----------------------------------------------------------------
 
 Status = Literal["active", "locked"]
 
@@ -224,7 +212,6 @@ def plan_member(gid: int, login: str, acct: Account | None, host: Host, taken: s
 
 
 def plan(state: State, members: dict[int, str], host: Host, overrides: dict[str, str]) -> list[Action]:
-    """Decide what to change. Pure: no I/O."""
     actions: list[Action] = []
     taken = {acct.user for acct in state.accounts.values()}
     for gid, login in sorted(members.items()):
@@ -245,7 +232,6 @@ def too_many_locks(state: State, actions: list[Action]) -> bool:
 
 
 def apply(state: State, action: Action) -> State:
-    """Return the state after one successful action. Pure."""
     accounts = dict(state.accounts)
     match action:
         case Create() | Adopt() | Reactivate():
@@ -258,9 +244,6 @@ def apply(state: State, action: Action) -> State:
 def with_logins(state: State, members: dict[int, str]) -> State:
     accounts = {gid: Account(a.user, members.get(gid, a.login), a.status) for gid, a in state.accounts.items()}
     return State(accounts)
-
-
-# ---- files ------------------------------------------------------------------
 
 
 def read_json(path: Path):
@@ -290,9 +273,6 @@ def load_state(cfg: Config) -> State:
 def save_state(cfg: Config, state: State) -> None:
     raw = {"accounts": {str(gid): vars(acct) for gid, acct in sorted(state.accounts.items())}}
     write_atomic(cfg.state_path, json.dumps(raw, indent=2) + "\n")
-
-
-# ---- sync (root) --------------------------------------------------------------
 
 
 def run(*cmd: str, ok: tuple[int, ...] = (0,)) -> None:
@@ -376,9 +356,6 @@ def sync(cfg: Config, dry_run: bool, allow_mass_lock: bool) -> int:
     save_state(cfg, state)
     refresh_keys(cfg, state, token)
     return 0
-
-
-# ---- keys (AuthorizedKeysCommand) ------------------------------------------------
 
 
 def keys(cfg: Config, user: str) -> int:

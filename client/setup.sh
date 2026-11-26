@@ -1,6 +1,4 @@
 #!/bin/sh
-# Set up `ssh pllab` on macOS or Linux for a PLLab-Project organization member.
-# Safe to run again: each step checks what is already done.
 set -eu
 
 ORG=PLLab-Project

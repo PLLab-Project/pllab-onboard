@@ -1,5 +1,3 @@
-# Set up `ssh pllab` on Windows for a PLLab-Project organization member.
-# Safe to run again: each step checks what is already done.
 # Native commands report failure through $LASTEXITCODE. Windows PowerShell 5.1
 # turns their stderr into terminating errors under 'Stop', so keep 'Continue'.
 $ErrorActionPreference = 'Continue'

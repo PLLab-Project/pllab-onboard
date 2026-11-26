@@ -1,7 +1,4 @@
 #!/bin/sh
-# Install or update pllab-accounts on pllab-server. Run as root from the repository.
-#   sudo sh server/install.sh            install the sync timer and key lookup
-#   sudo sh server/install.sh --harden   also turn off password and root SSH login
 set -eu
 
 here=$(cd "$(dirname "$0")" && pwd)
