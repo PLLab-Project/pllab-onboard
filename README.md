@@ -1,6 +1,12 @@
 # pllab-onboard
 
-PLLab 랩실 서버(`pllab-server`)에 `ssh pllab` 한 줄로 접속하게 해 주는 설정 도구다. `PLLab-Project` GitHub 조직원이면 관리자 승인 없이 쓸 수 있다.
+PLLab 랩실 서버(`pllab-server`)에 `ssh pllab` 한 줄로 접속하게 해 주는 설정 도구다. 이 저장소가 공식 접속 방법의 전부다.
+
+- **VPN, Tailscale, 랩실 네트워크가 필요 없다.** 서버는 Cloudflare Tunnel(`ssh.pl-official.site`)로 연결돼 있어 어디서든 접속한다.
+- **관리자에게 계정을 요청하지 않는다.** `PLLab-Project` GitHub 조직원이면 서버가 GitHub 아이디로 계정과 sudo 권한을 자동으로 만든다.
+- **비밀번호가 없다.** GitHub에 등록한 SSH 키로만 로그인한다.
+
+접속하면 공용 서버(i5 6코어, 메모리 8GB, GPU 없음)에서 웹 서비스, API, DB를 Docker로 올리고 `<이름>.pl-official.site` 주소로 공개할 수 있다. 서버 사용 규칙은 서버의 `/srv/pllab/docs/README.md`에 있다.
 
 ## 랩원: 처음 접속하기
 
